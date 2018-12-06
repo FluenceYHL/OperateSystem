@@ -31,6 +31,9 @@ namespace {
 
 
 // 银行家算法的证明 https://blog.csdn.net/trium_kw/article/details/51289610
+// 当搜索失败时，剩下的 finish[i] = false 的进程的 need[i] 都太大了
+// 1. 如果在后面的其他路径中，也肯定找不到，因为 need 都太大了
+// 2. 在前面走这些路径，就更找不到了，因为 work 是不断增大的，而 need[i] 比后面的 work 都更大，自然比前面的都更大
 class banker_Algorithm final {
 private:
 	int process, resource;
