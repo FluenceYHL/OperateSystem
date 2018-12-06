@@ -29,8 +29,8 @@ namespace {
 	}
 }
 
-// 银行家算法的证明 https://blog.csdn.net/trium_kw/article/details/51289610
 
+// 银行家算法的证明 https://blog.csdn.net/trium_kw/article/details/51289610
 class banker_Algorithm final {
 private:
 	int process, resource;
@@ -39,27 +39,6 @@ private:
 	std::vector< std::vector<int> > need;
 	banker_Algorithm(const banker_Algorithm&) = delete;
 	banker_Algorithm(banker_Algorithm&&) = delete;
-
-	bool is_safe() {
-		auto work = this->avaliable;
-		std::vector<bool> finish(this->process, false);
-		while(true) {
-			bool flag = false;
-			for(int i = 0;i < this->process; ++i) {
-				if(finish[i] == false and this->need[i] <= work) {
-					finish[i] = true;
-					for(int j = 0;j < this->resource; ++j)
-						work[j] += this->allocation[i][j];
-					flag = true;
-				}
-			}
-			if(flag == false) break;
-		}
-		for(int i = 0;i < this->process; ++i)
-			if(finish[i] == false)
-				return false;
-		return true;
-	}
 
 public:
 	banker_Algorithm(const std::string& fileName) {
@@ -82,6 +61,30 @@ public:
 				in >> this->need[i][j];
 	}
 
+	bool is_safe() {
+		std::vector<int> sequence;
+		auto work = this->avaliable;
+		std::vector<bool> finish(this->process, false);
+		while(true) {
+			bool flag = false;
+			for(int i = 0;i < this->process; ++i) {
+				if(finish[i] == false and this->need[i] <= work) {
+					finish[i] = true;
+					for(int j = 0;j < this->resource; ++j)
+						work[j] += this->allocation[i][j];
+					flag = true;
+					sequence.emplace_back(i);
+				}
+			}
+			if(flag == false) break;
+		}
+		for(int i = 0;i < this->process; ++i)
+			if(finish[i] == false)
+				return false;
+		print(sequence);
+		return true;
+	}
+
 	void handle_request(int id, const std::vector<int> &request) {
 		if(id < 0 || id >= this->process || request.size() not_eq this->resource)
 			return;
@@ -101,12 +104,17 @@ public:
 				return;
 			}
 			logCall("成功分配");
+			return;
 		}
+		logCall("资源不足以分配");
 	}
 };
 
 int main() {
-	banker_Algorithm one("./banker(1).txt");
-	one.handle_request(2, {0, 0, 0, 0});
+	banker_Algorithm one("./banker(2).txt");
+	std::cout << std::boolalpha << one.is_safe() << "\n";
+	one.handle_request(1, {1, 0, 2});
+	one.handle_request(4, {3, 3, 0});
+	one.handle_request(0, {0, 2, 0});
 	return 0;
 }
