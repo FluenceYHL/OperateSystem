@@ -29,6 +29,8 @@ namespace {
 	}
 }
 
+// 银行家算法的证明 https://blog.csdn.net/trium_kw/article/details/51289610
+
 class banker_Algorithm final {
 private:
 	int process, resource;
