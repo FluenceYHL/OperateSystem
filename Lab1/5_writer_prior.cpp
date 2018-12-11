@@ -12,6 +12,10 @@
        Author:       刘畅
        Modification: 完成了基本功能
        Problem:      最后将 count 改为 std::atomic 原子变量
+     1.Date:         2018.12.11
+       Author:       刘畅
+       Modification: 改成了“读写公平”
+       Problem:      
 **********************************************************************************/
 #include "gnuplot.hpp"
 #include <condition_variable>
@@ -42,51 +46,48 @@ private:
 };
 
 int main() {
-	Semaphore mutex(1);        // 设置信号量，控制同时访问的线程个数
-	Semaphore rw(1);
-	Semaphore w(1);
-	// std::atomic<int> count{ 0 };  // 改成原子变量更安全
-	int count = 0;
+	Semaphore fmutex(1), readMutex(1), writeMutex(1), queue(1);
+	int read_count = 0;
+	int write_count = 0;
+	std::thread reader([&]{
+		while(true) {
+			queue.wait();
+			readMutex.wait();
+			if(read_count == 0)
+				fmutex.wait();
+			++read_count;
+			readMutex.signal();
+			queue.signal();
 
-	static constexpr int initSize = 20;
-	srand(unsigned(time(nullptr)));
-	std::thread flows[initSize];
-	int cnt = -1;
+			std::cout << "读.....\n";
+			std::this_thread::sleep_for(std::chrono::seconds(1));
 
-	for(int i = 0;i < initSize; ++i) {
-		if((rand() % 2) & 1) {
-			// 读者线程
-			flows[++cnt] = std::thread([&]{
-				w.wait();
-				rw.wait();
-				int cur = count;
-				std::cout << "读者  :  " << cur << "个\t\t" << "写文件\n";
-				rw.signal();
-				w.signal();
-			});
-		} 
-		else {
-			// 写者线程
-			flows[++cnt] = std::thread([&]{
-				w.wait();
-				mutex.wait();
-				if(++count == 1)
-					rw.wait();
-				// ++count;
-				mutex.signal();
-				w.signal();
-
-				int cur = count;
-				std::cout << "读者  :  " << cur << "个\t\t" << "读文件\n";
-
-				mutex.wait();
-				if(--count == 0)
-					rw.signal();
-				mutex.signal();
-			});
+			readMutex.wait();
+			if(--read_count == 0)
+				fmutex.signal();
+			readMutex.signal();
 		}
-	}
-	for(int i = 0;i < initSize; ++i)
-		flows[i].join();
+	});
+	std::thread writer([&]{
+		while(true) {
+			writeMutex.wait();
+			if(write_count == 0)
+				queue.wait();
+			++write_count;
+			writeMutex.signal();
+
+			fmutex.wait();
+			std::cout << "......写\n";
+			std::this_thread::sleep_for(std::chrono::seconds(1));
+			fmutex.signal();
+
+			writeMutex.wait();
+			if(--write_count == 0)
+				queue.signal();
+			writeMutex.signal();
+		}
+	});
+	reader.join();
+	writer.join();
 	return 0;
 }
