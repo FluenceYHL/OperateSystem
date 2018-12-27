@@ -32,15 +32,18 @@ private:
 	const int init;
 	const int initSize;
 	std::vector< std::vector<Node> > buckets; 
+
 public:
 	Buddy(const int _init) : init(_init + 1), initSize(1 << _init), buckets(_init + 1, std::vector<Node>())
 	{
 		this->buckets[_init].emplace_back(0, this->initSize);
 	}
+
 	~Buddy() noexcept {
 		try {
 		} catch(...) {}
 	}
+
 	void display() {
 		std::cout << "\n";
 		for(int i = 0;i < this->init; ++i) {
@@ -50,6 +53,7 @@ public:
 			std::cout << "\n";
 		}
 	}
+
 	std::pair<int, int> yhl_malloc(const int request, bool show=false) {
 		if(request <= 0) {
 			std::cout << "请求大小非法\n"; return std::make_pair<int, int>(-1, -1);
@@ -86,10 +90,71 @@ public:
 		std::cout << "空间不足, 分配失败\n";
 		return std::make_pair<int, int>(-2, -2);
 	}
+
 	bool yhl_release(const int l, const int r) {
-		if(l < 0 || r <= 0) {
+		if(l < 0 || r <= 0 || l + r > this->initSize) {
 			std::cout << "内存段非法, 无法释放\n"; return false;
 		}
+		std::cout << "请求释放　 (" << l << ", " << l + r << ")\n"; 
+		int index = level(r);
+		std::cout << "index  :  " << index << "\n";
+		auto t = std::find_if(all(this->buckets[index]), [&](const Node& it){ return it.start == l; });
+		if(t not_eq this->buckets[index].end()) {
+			auto pos = std::distance(this->buckets[index].begin(), t);
+			if(this->buckets[index][pos].used == false) {
+				std::cout << "该内存端暂未分配\n";
+				return false;
+			} 
+			else {
+				this->buckets[index][pos].used = false;
+				// t = std::find_if(all(this->buckets[index]), [&](const Node& it){ return std::abs(it.start - l) == r; });
+				// std::cout << "找到了\n";
+				// t->display();
+				// // 如果找到地址连续的块, 而且是空闲的块, 就合并
+				// if(t not_eq this->buckets[index].end() and t->used == false) {
+				// 	std::cout << "可以开始合并\n";
+				// 	// 这里第一次合并
+				// 	int des = std::min(l, t->start);
+				// 	std::cout << "合并成　" << des + (r << 1);
+				// 	// 删掉两个子块
+				// 	this->buckets[index].erase(this->buckets[index].begin() + pos);
+				// 	this->buckets[index].erase(t);
+				// 	// 生成一个新块
+				// 	this->buckets[index + 1].emplace_back(des, (r << 1));
+				// 	this->display();
+				// 	for(int i = index + 1;i <= this->init; ++i) {
+				// 		t = std::find_if(all(this->buckets[i]), [&](const Node& it){ return std::abs(it.start - des) == (1 << i); });
+				// 		if(t not_eq this->buckets[i].end() and t->used == false) {
+				// 			des = std::min(des, t->start);
+				// 			std::cout << "继续合并\n";
+				// 			this->buckets[i].erase(this->buckets[i].end() - 1);
+				// 			this->buckets[i].erase(t); 
+				// 			this->buckets[i + 1].emplace_back(des, (1 << (i + 1)));
+				// 			this->display();
+				// 			// 这里记得要　break, 设置一个　flag
+				// 		}
+				// 		else break;
+				// 	}
+				// }
+				auto des = l;
+				for(int i = index;i <= this->init; ++i) {
+					t = std::find_if(all(this->buckets[i]), [&](const Node& it){ return std::abs(it.start - des) == (1 << i); });
+					if(t not_eq this->buckets[i].end() and t->used == false) {
+						des = std::min(des, t->start);
+						std::cout << "继续合并\n";
+						this->buckets[i].erase(this->buckets[i].end() - 1);
+						this->buckets[i].erase(t); 
+						this->buckets[i + 1].emplace_back(des, (1 << (i + 1)));
+						this->display();
+						// 这里记得要　break, 设置一个　flag
+					}
+					else break;
+				}
+				return true;
+			}
+		} 
+		std::cout << "不存在该单独内存段" << "\n";
+		return false;
 	}
 };
 
@@ -102,5 +167,7 @@ int main() {
 		segment.emplace_back(one.yhl_malloc(it));
 	}
 	// 开始随机释放
+	std::cout << "\n开始释放　:  \n\n";
+	one.yhl_release(351, 1);
 	return 0;
 }
