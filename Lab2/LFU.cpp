@@ -29,7 +29,7 @@ void LFU(const std::vector<int>& sequence, const int frame) {
 		auto pos = std::distance(buffer.begin(), std::find(all(buffer), it)); 
 		if(pos == frame) {
 			++fault;
-			// 现在开始找计数最大的，替换出去
+			// 现在开始找计数最小的，替换出去
 			pos = std::distance(cnt.begin(), std::min_element(all(cnt)));
 			buffer[pos] = it;
 			cnt[pos] = 1;
