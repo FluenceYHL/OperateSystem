@@ -1,0 +1,1 @@
+plot 'page(0).txt' w l lt 4 lw 4, 'page(1).txt' w l lt 1 lw 4, 'page(2).txt' w l lt 2 lw 4, 'page(3).txt' w l lt 3 lw 4 
