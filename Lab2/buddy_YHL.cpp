@@ -25,9 +25,10 @@ namespace YHL {
 	struct Node {
 		int start = 0;
 		int len = 0;
-		int used = false;
-		Node(const int _start = 0, const int _len = 0, bool _used = false)
-			: start(_start), len(_len), used(_used)
+		bool used = false;
+		int real = 0;
+		Node(const int _start = 0, const int _len = 0, bool _used = false, const int _real = 0)
+			: start(_start), len(_len), used(_used), real(_real)
 		{}
 		void display(const char *message = "") const {
 			std::cout << "(" << start << ", " << start + len << ")  " << message << "\n";
@@ -50,6 +51,7 @@ namespace YHL {
 	private:
 		const int init;
 		const int initSize;
+		int allocated = 0;
 		std::vector< std::vector<Node> > buckets; 
 
 	public:
@@ -81,6 +83,7 @@ namespace YHL {
 			for(int i = index;i < this->init; ++i) {
 				auto t = std::find_if(all(this->buckets[i]), [&](const Node& it){ return it.used == false; });
 				if(t not_eq this->buckets[i].end()) {
+					this->allocated += request;
 					int pos = std::distance(this->buckets[i].begin(), t);
 					if(i == index) {
 						this->buckets[i][pos].used = true;
@@ -94,9 +97,7 @@ namespace YHL {
 						this->buckets[i].erase(this->buckets[i].begin() + pos);
 
 						auto pre = index;
-						std::cout << "index  :  " << index << "\n";
-						std::cout << "i      :  " << i << "\n";
-						this->buckets[index].emplace_back(start, (1 << index), true);
+						this->buckets[index].emplace_back(start, (1 << index), true, request);
 						start += (1 << index);
 						while(index < i) {
 							this->buckets[index].emplace_back(start, (1 << index), false);
@@ -109,6 +110,13 @@ namespace YHL {
 				}
 			}
 			std::cout << "空间不足, 分配失败\n";
+			auto debris = this->initSize - this->allocated;
+			std::cout << "碎片  :  " << debris << "\n";
+			if(debris > request) {
+				std::cout << "碎片太多，无法满足\n";
+			} else {
+				std::cout << "实际空间不足\n";
+			}
 			return std::make_pair<int, int>(-2, -2);
 		}
 
@@ -126,6 +134,7 @@ namespace YHL {
 					return false;
 				} 
 				else {
+					this->allocated -= this->buckets[index][pos].real;
 					this->buckets[index][pos].used = false;
 					auto des = l;
 					for(int i = index;i <= this->init; ++i) {
